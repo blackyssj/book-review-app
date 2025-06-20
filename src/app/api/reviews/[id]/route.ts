@@ -4,17 +4,14 @@ import { query } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { reviewSchema } from "@/lib/validators";
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+// GET /api/reviews/:id
+export async function GET(request: Request, context: any) {
+  const { params } = context;
   const token = request.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
-  if (!token) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  }
+  if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   verifyToken(token);
 
-  const id = parseInt(params.id, 10);
+  const id = parseInt(params.id as string, 10);
   const result = await query(
     `SELECT * FROM reviews WHERE id = $1`,
     [id]
@@ -25,17 +22,14 @@ export async function GET(
   return NextResponse.json({ review: result.rows[0] });
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+// PUT /api/reviews/:id
+export async function PUT(request: Request, context: any) {
+  const { params } = context;
   const token = request.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
-  if (!token) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  }
+  if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const { userId } = verifyToken(token);
 
-  const id = parseInt(params.id, 10);
+  const id = parseInt(params.id as string, 10);
   const body = await request.json();
   const { book_title, rating, review, mood } = reviewSchema.parse(body);
 
@@ -61,17 +55,14 @@ export async function PUT(
   return NextResponse.json({ review: result.rows[0] });
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+// DELETE /api/reviews/:id
+export async function DELETE(request: Request, context: any) {
+  const { params } = context;
   const token = request.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
-  if (!token) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  }
+  if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const { userId } = verifyToken(token);
 
-  const id = parseInt(params.id, 10);
+  const id = parseInt(params.id as string, 10);
   await query(
     `DELETE FROM reviews WHERE id = $1 AND user_id = $2`,
     [id, userId]
