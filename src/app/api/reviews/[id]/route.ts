@@ -4,13 +4,10 @@ import { query } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { reviewSchema } from "@/lib/validators";
 
-type Context = { params: { id: string } };
-
 export async function GET(
   request: Request,
-  { params }: Context
+  { params }: { params: { id: string } }
 ) {
-  // Autorización
   const token = request.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
   if (!token) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -30,7 +27,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: Context
+  { params }: { params: { id: string } }
 ) {
   const token = request.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
   if (!token) {
@@ -42,7 +39,6 @@ export async function PUT(
   const body = await request.json();
   const { book_title, rating, review, mood } = reviewSchema.parse(body);
 
-  // Comprobar propietario
   const ownerRes = await query(
     `SELECT user_id FROM reviews WHERE id = $1`,
     [id]
@@ -53,12 +49,12 @@ export async function PUT(
 
   const result = await query(
     `UPDATE reviews
-        SET book_title = $1,
-            rating     = $2,
-            review     = $3,
-            mood       = $4
-      WHERE id = $5
-      RETURNING *`,
+       SET book_title = $1,
+           rating     = $2,
+           review     = $3,
+           mood       = $4
+     WHERE id = $5
+     RETURNING *`,
     [book_title, rating, review, mood, id]
   );
 
@@ -67,7 +63,7 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: Context
+  { params }: { params: { id: string } }
 ) {
   const token = request.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
   if (!token) {
