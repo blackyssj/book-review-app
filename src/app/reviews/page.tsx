@@ -1,7 +1,9 @@
-'use client';  // ← Marca todo el archivo como cliente
+// src/app/reviews/page.tsx
+'use client';
+export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import { ReviewCard } from "@/components/ReviewCard";
 
@@ -13,135 +15,111 @@ type Review = {
   mood: string;
   created_at: string;
   user_id: number;
-  reviewer_name: string;
+  reviewer_name?: string;
 };
 
 export default function ReviewsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const searchParam = searchParams.get("search") ?? "";
-  const moodParam   = searchParams.get("mood")   ?? "";
-
   const { userId, loading: userLoading } = useUser();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchParam, setSearchParam] = useState("");
+  const [moodParam, setMoodParam] = useState("");
 
-  // Protección de ruta
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setSearchParam(params.get("search") || "");
+    setMoodParam(params.get("mood") || "");
+  }, []);
+
+  // Protege ruta
   useEffect(() => {
     if (!userLoading && userId === null) {
       router.push("/login");
     }
   }, [userLoading, userId, router]);
 
-  // Carga de reseñas con filtros
+  // Carga reseñas
   useEffect(() => {
     if (userLoading || userId === null) return;
     setLoading(true);
-
     const url = new URL("/api/reviews", window.location.origin);
     if (searchParam) url.searchParams.set("search", searchParam);
-    if (moodParam)   url.searchParams.set("mood", moodParam);
+    if (moodParam) url.searchParams.set("mood", moodParam);
 
     fetch(url.toString(), { credentials: "include" })
-      .then((res) => {
+      .then(res => {
         if (res.status === 401) {
           router.push("/login");
           return { reviews: [] };
         }
         return res.json();
       })
-      .then((json) => setReviews(json.reviews))
+      .then(json => setReviews(json.reviews))
       .finally(() => setLoading(false));
   }, [userLoading, userId, router, searchParam, moodParam]);
 
-  if (userLoading || loading) {
-    return <p className="text-center mt-20 text-gray-500">Cargando reseñas…</p>;
-  }
+  if (userLoading || loading) return <p className="text-center mt-20 text-gray-500">Cargando reseñas…</p>;
   if (userId === null) return null;
 
   return (
-    <>
-      {/* Filtro y búsqueda */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          const form = e.currentTarget as any;
-          const s = form.search.value.trim();
-          const m = form.mood.value.trim();
-          const qs = new URLSearchParams();
-          if (s) qs.set("search", s);
-          if (m) qs.set("mood", m);
-          router.push(`/reviews?${qs.toString()}`);
-        }}
-        className="flex flex-col sm:flex-row sm:items-end gap-4 mb-6"
-      >
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Buscar título
-          </label>
-          <input
-            name="search"
-            defaultValue={searchParam}
-            placeholder="Ej: Principito"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Filtrar mood
-          </label>
-          <select
-            name="mood"
-            defaultValue={moodParam}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
-            <option value="">Todos</option>
-            <option value="feliz">Feliz</option>
-            <option value="triste">Triste</option>
-            <option value="emocionado">Emocionado</option>
-            <option value="aburrida">Aburrida</option>
-          </select>
-        </div>
-        <button
-          type="submit"
-          className="mt-2 sm:mt-0 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+    <div className="container mx-auto p-4">
+      <div className="flex flex-col sm:flex-row items-end gap-4 mb-6">
+        <input
+          placeholder="Buscar título"
+          defaultValue={searchParam}
+          onBlur={e => setSearchParam(e.target.value)}
+          className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-400"
+        />
+        <select
+          defaultValue={moodParam}
+          onChange={e => setMoodParam(e.target.value)}
+          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-400"
         >
-          Aplicar
+          <option value="">Todos moods</option>
+          <option value="feliz">Feliz</option>
+          <option value="triste">Triste</option>
+          <option value="emocionado">Emocionado</option>
+          <option value="aburrida">Aburrida</option>
+        </select>
+        <button
+          onClick={() => {
+            const qs = new URLSearchParams();
+            if (searchParam) qs.set("search", searchParam);
+            if (moodParam) qs.set("mood", moodParam);
+            router.push(`/reviews?${qs.toString()}`);
+          }}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+        >
+          Aplicar filtros
         </button>
-      </form>
-
-      {/* Botón de nueva reseña */}
+      </div>
       <div className="flex justify-end mb-6">
         <button
           onClick={() => router.push("/add-review")}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
         >
           + Nueva Reseña
         </button>
       </div>
-
-      {/* Lista de reseñas */}
       <div className="space-y-6">
         {reviews.length > 0 ? (
-          reviews.map((r) => (
+          reviews.map(r => (
             <ReviewCard
               key={r.id}
               review={r}
               currentUserId={userId}
-              onDelete={async (id) => {
+              onDelete={async id => {
                 if (!confirm("¿Eliminar reseña?")) return;
-                await fetch(`/api/reviews/${id}`, {
-                  method: "DELETE",
-                  credentials: "include",
-                });
-                setReviews((prev) => prev.filter((x) => x.id !== id));
+                await fetch(`/api/reviews/${id}`, { method: "DELETE", credentials: "include" });
+                setReviews(prev => prev.filter(x => x.id !== id));
               }}
             />
           ))
         ) : (
-          <p className="text-center text-gray-600">No hay reseñas con esos criterios.</p>
+          <p className="text-center text-gray-600">No hay reseñas disponibles.</p>
         )}
       </div>
-    </>
+    </div>
   );
 }
