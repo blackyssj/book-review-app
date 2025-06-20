@@ -1,4 +1,4 @@
-"use client";
+'use client';  // ← Marca todo el archivo como cliente
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -26,14 +26,14 @@ export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Proteger ruta
+  // Protección de ruta
   useEffect(() => {
     if (!userLoading && userId === null) {
       router.push("/login");
     }
   }, [userLoading, userId, router]);
 
-  // Cargar reseñas con posibles filtros
+  // Carga de reseñas con filtros
   useEffect(() => {
     if (userLoading || userId === null) return;
     setLoading(true);
@@ -43,8 +43,14 @@ export default function ReviewsPage() {
     if (moodParam)   url.searchParams.set("mood", moodParam);
 
     fetch(url.toString(), { credentials: "include" })
-      .then(res => res.json())
-      .then(json => setReviews(json.reviews))
+      .then((res) => {
+        if (res.status === 401) {
+          router.push("/login");
+          return { reviews: [] };
+        }
+        return res.json();
+      })
+      .then((json) => setReviews(json.reviews))
       .finally(() => setLoading(false));
   }, [userLoading, userId, router, searchParam, moodParam]);
 
@@ -55,7 +61,7 @@ export default function ReviewsPage() {
 
   return (
     <>
-      {/* — Formulario de búsqueda y filtro — */}
+      {/* Filtro y búsqueda */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -104,7 +110,7 @@ export default function ReviewsPage() {
         </button>
       </form>
 
-      {/* — Botón + Nueva Reseña — */}
+      {/* Botón de nueva reseña */}
       <div className="flex justify-end mb-6">
         <button
           onClick={() => router.push("/add-review")}
@@ -114,7 +120,7 @@ export default function ReviewsPage() {
         </button>
       </div>
 
-      {/* — Lista de reseñas — */}
+      {/* Lista de reseñas */}
       <div className="space-y-6">
         {reviews.length > 0 ? (
           reviews.map((r) => (
